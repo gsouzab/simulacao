@@ -1,11 +1,6 @@
 import random
 import math
 from Queue import PriorityQueue
-# as taxas são sempre calculadas na hora de criação do evento. tem como fazer um array onde é passado um valor a ser calculado?
-
-# procurar como fazer log das informações
-
-# confirmar como são as taxas
 
 '''
 Tipos estados possiveis
@@ -27,101 +22,85 @@ LIMPEZA = 3
 
 class Evento:
 
-	def __init__(self, tempoDeChegada, tipo):
+	def __init__(self, tempoDeChegada, tipo, host):
 		self.tempoDeChegada = tempoDeChegada
 		self.tipo = tipo
+		self.host = host
 
 	def __gt__(self, other):
-        return self.tempoDeChegada > other.tempoDeChegada
+		return self.tempoDeChegada > other.tempoDeChegada
 
-    def __ge__(self, other):
-        return self.tempoDeChegada >= other.tempoDeChegada
+	def __ge__(self, other):
+		return self.tempoDeChegada >= other.tempoDeChegada
 
-    def __lt__(self, other):
-        return self.tempoDeChegada < other.tempoDeChegada
+	def __lt__(self, other):
+		return self.tempoDeChegada < other.tempoDeChegada
 
-    def __le__(self, other):
-        return self.tempoDeChegada <= other.tempoDeChegada
+	def __le__(self, other):
+		return self.tempoDeChegada <= other.tempoDeChegada
 
-    def __eq__(self, other):
-        return self.tempoDeChegada == other.tempoDeChegada
+	def __eq__(self, other):
+		return self.tempoDeChegada == other.tempoDeChegada
 
-    def __ne__(self, other):
-        return self.tempoDeChegada != other.tempoDeChegada
+	def __ne__(self, other):
+		return self.tempoDeChegada != other.tempoDeChegada
 
 class Host:
 	
-	def __init(self):
+	def __init__(self):
 		self.estado = LIMPO
 
 class Simulacao:
-
-	__init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza):
+	def __init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza):
 		self.N = N
 		self.taxaEndogena = taxaEndogena
 		self.taxaExogena = taxaExogena
 		self.taxaLimpeza = taxaLimpeza
+		self.tempoSimulacao = 0
 		self.filaEventos = PriorityQueue()
+		self.listaHosts = []
 		
 		for i in range(self.N):
-			self.filaEventos.put(Evento(aaa, INFECCAO_EXOGENA))
-		
+			self.listaHosts.append(Host())
+			self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA, self.listaHosts[i]))
 
+	def tratarEvento(self, evento):
+		return 0
+		#if evento.tipo == INFECCAO_EXOGENA:
 
-	def criaEvento(tempoAtual, tipo):
-		tempo = self.geraTempo(taxas[tipo])
+	def criarEvento(self, tipo, host):
+		tempoChegada = self.gerarTempo(tipo)
+		return Evento(tempoChegada, tipo, host)
 
-	def geraTempo(taxa):
+	def gerarTempo(self, tipo):
 		u = random.uniform(0, 1)
-		tempo = -1*math.log(u)/taxa
+
+		if tipo == INFECCAO_ENDOGENA:
+			tempo = -1*math.log(u)/self.taxaEndogena
+		elif tipo == INFECCAO_EXOGENA: 
+			tempo = -1*math.log(u)/self.taxaExogena
+		elif tipo == LIMPEZA: 
+			tempo = -1*math.log(u)/self.taxaLimpeza
+
 		return tempo
 
-	def simulacao:
-		N = 8 # número inicial de pessoas na clique
-		d = 0 # nenhuma pessoa infectada
-		# cria e adiciona NOVA CHEGADA DE PESSOA(S) na lista de eventos
-		# cria e adiciona NOVA INFECÇÃO na lista de eventos
-		while N < 60:
-			if evento.tipo == "chegada":
-				N++
-				# cria e adiciona NOVA CHEGADA DE PESSOA(S) na lista de eventos
-			else if evento.tipo == "infeccao":
-				d++
-				# cria e adiciona NOVA CURA na lista de eventos
-				# cria e adiciona NOVA INFECÇÃO na lista de eventos (será ?)
-			else: # evento.tipo == "cura"
-				d--
-				# cria e adiciona NOVA INFECÇÃO na lista de eventos
+	def simular(self, limiteIteracoes):
+		return 0
 
-	def variasSimulacoes:
-		self.simulacao()
-		loops = 1
-		while(!self.testaConvergencia()	or loops < 100)
-			loops++
-			self.simulacao()
+if __name__ == '__main__':
+	N = 10
+	C = 1
+	_lambda = float(C)/ float(N)
+	_gama = 0.1
+	_mi = 1
 
-	def testaConvergencia:
-		# a ideia era usar o teste de intervalo de confiança, mas o problema é em que parametro usar o teste
-		# usar no numero medio de infectados em N = 60?
+	simulacao = Simulacao(N , _gama, _lambda, _mi)
 
-		#calculo de intervalo de confia
-
-		# somar vetor de medias de infectados para N = 60 e dividir tudo pelo número de vezes que rodou a simulacao (M)
-		mediaAmostral = vetor.sum() / M
-		# subtrair a media amostral de cada item do vetor de medias de infectados para N = 60, somar tudo e dividir tudo pelo número de vezes que rodou a simulacao menos 1 (M - 1)
-		variancaAmostral = sum(vetor - vetor(mediaAmostral))**2 / (M - 1) 
-		#intervalo de confianca
-		intervaloDeConfianca = ( 2 * 1.96 * math.sqrt(variancaAmostral) ) / math.sqrt(M)
-
-		if(intervaloDeConfianca < mediaAmostral * 0.1):
-			return true
-		else:
-			return false
-
-
-
-
-
+	''' 
+	for i in range(N):
+		evento = simulacao.filaEventos.get() 
+		print evento.tempoDeChegada, evento.tipo
+	'''
 
 
 
