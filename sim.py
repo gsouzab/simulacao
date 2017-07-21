@@ -2,7 +2,7 @@
 
 import random
 import math
-from Queue import PriorityQueue
+from queue import PriorityQueue
 
 # Sugestões:
 # Fazer a simulação a partir de uma lista de adjacencias. Com isso podemos simular vários grafos e não só a clique
@@ -67,6 +67,9 @@ class Simulacao:
 		self.filaEventos = PriorityQueue()
 		self.listaHosts = []
 		self.d = 0
+		self.mediaInfectados = 0
+		self.A = 0
+		self.listaMediaDeInfectados = []
 		
 		self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA))
 
@@ -86,15 +89,14 @@ class Simulacao:
 		# 	self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA, self.listaHosts[i]))
 
 	def tratarEvento(self, evento):
-		self.tempoSimulacao = evento.tempoDeChegada
 		if evento.tipo == INFECCAO_EXOGENA or evento.tipo == INFECCAO_ENDOGENA:
 			# Sorteia host das adjacencias e se estiver vulnerável:
 			hostSelecionado = random.choice(self.listaHosts)
 			if hostSelecionado.estado == LIMPO:
 				# Infecta
 				hostSelecionado.estado = INFECTADO
-				# Atualiza número de infectados
-				self.d+=1
+				# Atualiza parametros e metricas da simulação
+				self.atualizaParametros()
 				# Agenda infecção endogena+exogena ou cura (o que vier primeiro)
 				tempoCura = self.gerarTempo(LIMPEZA)
 				tempoInfeccao = self.gerarTempo(INFECCAO_ENDOGENA)
@@ -109,8 +111,8 @@ class Simulacao:
 			#evento.tipo == LIMPEZA
 			# Cura host especificado no evento
 			evento.host.estado = LIMPO
-			# Atualiza número de infectados
-			self.d-=1
+			# Atualiza parametros e metricas da simulação
+			self.atualizaParametros()
 			# Agenda próxima infecção endógena+exogena
 			self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA))
 
@@ -133,25 +135,56 @@ class Simulacao:
 
 		return tempo
 
+	def atualizaParametros(evento):
+		self.A += self.d*(evento.tempoDeChegada - tempoSimulacao)
+		self.tempoSimulacao = evento.tempoDeChegada
+		self.mediasDeInfectados.put(float(self.A) / self.tempoSimulacao)
+		if evento.tipo == LIMPEZA:
+			self.d -= 1
+		else:
+			self.d += 1
+
+	def intervaloDeConfianca(iteracoes):
+		media = sum(self.mediasDeInfectados) / iteracoes
+		variancia = (map(lambda x: x - media, lista))**2 / (iteracoes - 1)
+		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
+		if ic < 0.1 * media:
+			return true
+		else:
+			return false
+
 	def simular(self, limiteIteracoes):
-		i = 0
-		while i < limiteIteracoes:
-			print '[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.d 
+		i = 1
+		while i <= limiteIteracoes and !self.intervaloDeConfianca(i) :
+			print('[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', self.d)
 			evento = self.filaEventos.get()
 			self.tratarEvento(evento)
 			i += 1 
-		return 0
+		return sum(self.mediasDeInfectados) / i-1
+
+def intervaloDeConfianca(iteracoes):
+		media = sum(mediasDeRodadas) / iteracoes
+		variancia = (map(lambda x: x - media, mediasDeRodadas))**2 / (iteracoes - 1)
+		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
+		if ic < 0.1 * media:
+			return true
+		else:
+			return false
 
 if __name__ == '__main__':
 	N = 20
 	C = 1
-	_lambda = float(C)/ float(N)
+	_lambda = float(C) / float(N)
 	_gama = 0.9
 	_mi = 1
+	mediasDeRodadas = []
 
 	simulacao = Simulacao(N , _gama, _lambda, _mi)
 
-	simulacao.simular(10000)
+	i = 1
+	while i <= 100 and !intervaloDeConfianca(i):
+		mediasDeRodadas.put(simulacao.simular(1000))
+		i += 1
 
 	''' 
 	for i in range(N):
