@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import random
 import math
 from Queue import PriorityQueue
@@ -75,45 +77,40 @@ class Simulacao:
 		'''
 		temposDeEvento = []
 		for i in range(self.N):
-			temposDeEvento.put(se.gerarTempo(INFECCAO_EXOGENA))
-		self.filaEventos.put(Evento(min(temposDeEvento, INFECCAO_EXOGENA)))
+			self.listaHosts.append(Host())
+			temposDeEvento.append(self.gerarTempo(INFECCAO_EXOGENA))
+		self.filaEventos.put(Evento(min(temposDeEvento), INFECCAO_EXOGENA))
 		
 		# for i in range(self.N):
 		# 	self.listaHosts.append(Host())
 		# 	self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA, self.listaHosts[i]))
 
 	def tratarEvento(self, evento):
-		tempoSimulacao = evento.tempoDeChegada
+		self.tempoSimulacao = evento.tempoDeChegada
 		if evento.tipo == INFECCAO_EXOGENA or evento.tipo == INFECCAO_ENDOGENA:
 			# Sorteia host das adjacencias e se estiver vulnerável:
-			hostSelecionado = random.choice(listaHosts)
-			if hostSelecionado.estado == LIMPO
+			hostSelecionado = random.choice(self.listaHosts)
+			if hostSelecionado.estado == LIMPO:
 				# Infecta
 				hostSelecionado.estado = INFECTADO
 				# Atualiza número de infectados
-				d++
+				self.d+=1
 				# Agenda infecção endogena+exogena ou cura (o que vier primeiro)
 				tempoCura = self.gerarTempo(LIMPEZA)
 				tempoInfeccao = self.gerarTempo(INFECCAO_ENDOGENA)
 				if tempoCura < tempoInfeccao:
-					filaEventos.put(self.criarEvento(LIMPEZA, hostSelecionado))
+					self.filaEventos.put(self.criarEvento(LIMPEZA, hostSelecionado))
 				else:
-					filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA, hostSelecionado))
+					self.filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA, hostSelecionado))
 			else:
 				# no caso do host já estar infectado, só gera uma nova infecção
-				filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA))
-		'''
-		else if evento.tipo == INFECCAO_ENDOGENA:
-			# Sorteia host das adjacencias e se estiver vulnerável: 
-			# Infecta
-			# Atualiza taxas de infecção
-			# Agenda infecção endogena+exogena ou cura (o que vier primeiro)
-		'''
-		else: #evento.tipo == LIMPEZA
+				self.filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA))
+		else: 
+			#evento.tipo == LIMPEZA
 			# Cura host especificado no evento
 			evento.host.estado = LIMPO
 			# Atualiza número de infectados
-			d--
+			self.d-=1
 			# Agenda próxima infecção endógena+exogena
 			self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA))
 
@@ -128,8 +125,8 @@ class Simulacao:
 		if tipo == INFECCAO_ENDOGENA:
 			tempo = -1*math.log(u)/self.taxaEndogena
 		'''
-		elif tipo == INFECCAO_EXOGENA or tipo == INFECCAO_ENDOGENA: 
-			taxa = taxaExogena*taxaExogena**d
+		if tipo == INFECCAO_EXOGENA or tipo == INFECCAO_ENDOGENA: 
+			taxa = self.taxaExogena * (self.taxaEndogena**self.d)
 			tempo = -1*math.log(u)/taxa
 		elif tipo == LIMPEZA: 
 			tempo = -1*math.log(u)/self.taxaLimpeza
@@ -137,16 +134,24 @@ class Simulacao:
 		return tempo
 
 	def simular(self, limiteIteracoes):
+		i = 0
+		while i < limiteIteracoes:
+			print '[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.d 
+			evento = self.filaEventos.get()
+			self.tratarEvento(evento)
+			i += 1 
 		return 0
 
 if __name__ == '__main__':
-	N = 10
+	N = 20
 	C = 1
 	_lambda = float(C)/ float(N)
-	_gama = 0.1
+	_gama = 0.9
 	_mi = 1
 
 	simulacao = Simulacao(N , _gama, _lambda, _mi)
+
+	simulacao.simular(10000)
 
 	''' 
 	for i in range(N):
