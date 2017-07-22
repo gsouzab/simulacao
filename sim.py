@@ -90,7 +90,7 @@ class Simulacao:
 		for i in range(self.N):
 			novoHost = Host()
 			self.listaHosts.append(novoHost)
-			self.filaEventos.put(self.criarEvento(EVENTO_INFECCAO, self.listaHosts[i]))
+			self.filaEventos.put(self.criarEvento(EVENTO_INFECCAO, novoHost))
 
 		for i in range(self.N):
 			self.gerarVizinhanca(i, tipoVizinhanca)
@@ -117,10 +117,9 @@ class Simulacao:
 		hostSelecionado = evento.host
 
 		if evento.tipo == EVENTO_INFECCAO:
-			if hostSelecionado.estado != HOST_INFECTADO:
-				hostSelecionado.estado = HOST_INFECTADO
-				self.hostsInfectados += 1
-				self.filaEventos.put(self.criarEvento(EVENTO_LIMPEZA, hostSelecionado))
+			hostSelecionado.estado = HOST_INFECTADO
+			self.hostsInfectados += 1
+			self.filaEventos.put(self.criarEvento(EVENTO_LIMPEZA, hostSelecionado))
 
 		elif evento.tipo == EVENTO_LIMPEZA:
 			hostSelecionado.estado = HOST_LIMPO
@@ -138,11 +137,11 @@ class Simulacao:
 
 		if tipo == EVENTO_INFECCAO:
 			vizinhosInfectados = host.calcularVizinhosInfectados()
-			taxa = self.taxaExogena * (self.taxaEndogena**vizinhosInfectados)
-			tempo = -1*math.log(u)/taxa
+			taxa = self.taxaExogena * (self.taxaEndogena**vizinhosInfectados)			
 		elif tipo == EVENTO_LIMPEZA:
-			tempo = -1*math.log(u)/self.taxaLimpeza
+			taxa = self.taxaLimpeza
 
+		tempo = -1*math.log(u)/taxa
 		return tempo
 
 	def simular(self, limiteIteracoes):
@@ -156,11 +155,11 @@ class Simulacao:
 
 if __name__ == '__main__':
 	
-	N = 20
+	N = 50
 	C = 1
 	_lambda = float(C)/ float(N)
-	_gama = 0.9
+	_gama = 1.1
 	_mi = 1
 
 	simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, verbose = True)
-	simulacao.simular(10000)
+	simulacao.simular(1000)
