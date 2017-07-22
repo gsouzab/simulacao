@@ -2,29 +2,30 @@
 
 import random
 import math
-from queue import PriorityQueue
-
-# Sugestões:
-# Fazer a simulação a partir de uma lista de adjacencias. Com isso podemos simular vários grafos e não só a clique
-# Considerar apenas INFECCOES, sem diferenca de exogena e endogena
+from Queue import PriorityQueue
 
 '''
-Tipos estados possiveis
-Limpo (e por consquencia suscetivel)
-Infectado
-''' 
-LIMPO = 1
-INFECTADO = 2
+Tipos de estados possiveis do Host
+- Limpo (suscetivel)
+- Infectado
+'''
+HOST_LIMPO = 1
+HOST_INFECTADO = 2
 
 '''
 Tipos de eventos possiveis
-Infeccao exogena
-Infeccao endogena
-Limpeza
-''' 
-INFECCAO_EXOGENA = 1
-INFECCAO_ENDOGENA = 2
-LIMPEZA = 3
+- Infeccao
+- Limpeza
+'''
+EVENTO_INFECCAO = 1
+EVENTO_LIMPEZA = 2
+
+'''
+Tipos de vizinhancas
+- Clique
+- ?
+'''
+VIZINHANCA_CLIQUE = 1
 
 class Evento:
 
@@ -52,164 +53,141 @@ class Evento:
 		return self.tempoDeChegada != other.tempoDeChegada
 
 class Host:
-	
+
 	def __init__(self):
-		self.estado = LIMPO
+		self.estado = HOST_LIMPO
+		self.vizinhos = []
+
+	def calcularVizinhosInfectados(self):
+		vizinhosInfectados = 0
+		for vizinho in self.vizinhos:
+			if vizinho.estado == HOST_INFECTADO:
+				vizinhosInfectados += 1
+
+		return vizinhosInfectados
+
+	def ehVizinho(self, host):
+		for vizinho in self.vizinhos:
+			if vizinho == host:
+				return True
+
+		return False
 
 class Simulacao:
 
-	def __init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza):
+	def __init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza, tipoVizinhanca, verbose=False):
 		self.N = N
 		self.taxaEndogena = taxaEndogena
 		self.taxaExogena = taxaExogena
 		self.taxaLimpeza = taxaLimpeza
+		self.tipoVizinhanca = tipoVizinhanca
 		self.tempoSimulacao = 0
 		self.filaEventos = PriorityQueue()
 		self.listaHosts = []
-		self.d = 0
-		self.mediaInfectados = 0
+		self.hostsInfectados = 0
 		self.A = 0
-		self.listaMediaDeInfectados = []
-		
-		self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA))
+		self.infectadosPorIteracao = []
+		self.verbose = verbose
 
-		'''
-		Gera N tempos possíveis infecções exógenas
-		Escolhe o menor tempo dentre as gerados
-		Cria um evento com o tempo escolhido
-		'''
-		temposDeEvento = []
 		for i in range(self.N):
-			self.listaHosts.append(Host())
-			temposDeEvento.append(self.gerarTempo(INFECCAO_EXOGENA))
-		self.filaEventos.put(Evento(min(temposDeEvento), INFECCAO_EXOGENA))
-		
-		# for i in range(self.N):
-		# 	self.listaHosts.append(Host())
-		# 	self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA, self.listaHosts[i]))
+			novoHost = Host()
+			self.listaHosts.append(novoHost)
+			self.filaEventos.put(self.criarEvento(EVENTO_INFECCAO, novoHost))
+
+
+		for i in range(self.N):
+			self.gerarVizinhanca(i, tipoVizinhanca)
+
+	def gerarVizinhanca (self, indexHostAtual, tipoVizinhanca):
+		if tipoVizinhanca == VIZINHANCA_CLIQUE:
+			for i in range(self.N):
+				if i != indexHostAtual:
+					self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[i])
+
+	def reagendarEventosVizinhos(self, host):
+			filaEventosTemp = PriorityQueue()
+
+			while not self.filaEventos.empty():
+				evento = self.filaEventos.get()
+				if evento.tipo == EVENTO_INFECCAO and host.ehVizinho(evento.host):
+					evento.tempoDeChegada = self.gerarTempo(evento.tipo, evento.host) + self.tempoSimulacao
+				filaEventosTemp.put(evento)
+
+			self.filaEventos = filaEventosTemp
 
 	def tratarEvento(self, evento):
-		if evento.tipo == INFECCAO_EXOGENA or evento.tipo == INFECCAO_ENDOGENA:
-			# Sorteia host das adjacencias e se estiver vulnerável:
-			hostSelecionado = random.choice(self.listaHosts)
-			if hostSelecionado.estado == LIMPO:
-				# Infecta
-				hostSelecionado.estado = INFECTADO
-				# Atualiza parametros e metricas da simulação
-				self.atualizaParametros()
-				# Agenda infecção endogena+exogena ou cura (o que vier primeiro)
-				tempoCura = self.gerarTempo(LIMPEZA)
-				tempoInfeccao = self.gerarTempo(INFECCAO_ENDOGENA)
-				if tempoCura < tempoInfeccao:
-					self.filaEventos.put(self.criarEvento(LIMPEZA, hostSelecionado))
-				else:
-					self.filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA, hostSelecionado))
-			else:
-				# no caso do host já estar infectado, só gera uma nova infecção
-				self.filaEventos.put(self.criarEvento(INFECCAO_ENDOGENA))
-		else: 
-			#evento.tipo == LIMPEZA
-			# Cura host especificado no evento
-			evento.host.estado = LIMPO
-			# Atualiza parametros e metricas da simulação
-			self.atualizaParametros()
-			# Agenda próxima infecção endógena+exogena
-			self.filaEventos.put(self.criarEvento(INFECCAO_EXOGENA))
+		self.atualizaParametros(evento)
+		hostSelecionado = evento.host
 
-	def criarEvento(self, tipo, host=None):
-		tempoChegada = self.gerarTempo(tipo) + self.tempoSimulacao
+		if evento.tipo == EVENTO_INFECCAO:
+			hostSelecionado.estado = HOST_INFECTADO
+			self.filaEventos.put(self.criarEvento(EVENTO_LIMPEZA, hostSelecionado))
+
+		elif evento.tipo == EVENTO_LIMPEZA:
+			hostSelecionado.estado = HOST_LIMPO
+			self.filaEventos.put(self.criarEvento(EVENTO_INFECCAO, hostSelecionado))
+				
+		self.reagendarEventosVizinhos(hostSelecionado)
+
+	def criarEvento(self, tipo, host):
+		tempoChegada = self.gerarTempo(tipo, host) + self.tempoSimulacao
 		return Evento(tempoChegada, tipo, host)
 
-	def gerarTempo(self, tipo):
+	def gerarTempo(self, tipo, host=None):
 		u = random.uniform(0, 1)
 
-		'''
-		if tipo == INFECCAO_ENDOGENA:
-			tempo = -1*math.log(u)/self.taxaEndogena
-		'''
-		if tipo == INFECCAO_EXOGENA or tipo == INFECCAO_ENDOGENA: 
-			taxa = self.taxaExogena * (self.taxaEndogena**self.d)
-			tempo = -1*math.log(u)/taxa
-		elif tipo == LIMPEZA: 
-			tempo = -1*math.log(u)/self.taxaLimpeza
+		if tipo == EVENTO_INFECCAO:
+			vizinhosInfectados = host.calcularVizinhosInfectados()
+			taxa = self.taxaExogena * (self.taxaEndogena**vizinhosInfectados)			
+		elif tipo == EVENTO_LIMPEZA:
+			taxa = self.taxaLimpeza
 
+		tempo = -1*math.log(u)/taxa
 		return tempo
 
-	def atualizaParametros(evento):
-		self.A += self.d*(evento.tempoDeChegada - tempoSimulacao)
+	def atualizaParametros(self, evento):
+		if evento.tipo == EVENTO_LIMPEZA:
+			self.hostsInfectados -= 1
+		else:
+			self.hostsInfectados += 1
+		
+		#self.A += self.hostsInfectados * (evento.tempoDeChegada - self.tempoSimulacao)
 		self.tempoSimulacao = evento.tempoDeChegada
-		self.mediasDeInfectados.put(float(self.A) / self.tempoSimulacao)
-		if evento.tipo == LIMPEZA:
-			self.d -= 1
-		else:
-			self.d += 1
+		self.infectadosPorIteracao.append(self.hostsInfectados)
+		
+	def intervaloDeConfianca(self, iteracoes):		
+		if iteracoes == 1:
+			return False
 
-	def intervaloDeConfianca(iteracoes):
-		media = sum(self.mediasDeInfectados) / iteracoes
-		variancia = (map(lambda x: x - media, lista))**2 / (iteracoes - 1)
+		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
+		media = float(sum(self.infectadosPorIteracao)) / iteracoes		
+		variancia = sum(map(lambda x: (x - media) ** 2, self.infectadosPorIteracao)) / (iteracoes - 1)
 		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
-		if ic < 0.1 * media:
-			return true
-		else:
-			return false
+		return ic < 0.1 * media
 
 	def simular(self, limiteIteracoes):
 		i = 1
-		while i <= limiteIteracoes and !self.intervaloDeConfianca(i) :
-			print('[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', self.d)
+		
+		while i <= limiteIteracoes and not self.intervaloDeConfianca(i):
 			evento = self.filaEventos.get()
 			self.tratarEvento(evento)
-			i += 1 
-		return sum(self.mediasDeInfectados) / i-1
+			print '[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.hostsInfectados
 
-def intervaloDeConfianca(iteracoes):
-		media = sum(mediasDeRodadas) / iteracoes
-		variancia = (map(lambda x: x - media, mediasDeRodadas))**2 / (iteracoes - 1)
-		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
-		if ic < 0.1 * media:
-			return true
-		else:
-			return false
+			i += 1
+
+		print float(sum(self.infectadosPorIteracao)) / i		
+
+		return 0
 
 if __name__ == '__main__':
-	N = 20
+	
+	N = 10
 	C = 1
-	_lambda = float(C) / float(N)
-	_gama = 0.9
+	_lambda = float(C) / N
+	_gama = 0.6
 	_mi = 1
 	mediasDeRodadas = []
 
-	simulacao = Simulacao(N , _gama, _lambda, _mi)
-
-	i = 1
-	while i <= 100 and !intervaloDeConfianca(i):
-		mediasDeRodadas.put(simulacao.simular(1000))
-		i += 1
-
-	''' 
-	for i in range(N):
-		evento = simulacao.filaEventos.get() 
-		print evento.tempoDeChegada, evento.tipo
-	'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, verbose = True)
+	#executar a simulaçao vazias vezes, o slide se refere a multiplas rodadas batch
+	simulacao.simular(10000)	
