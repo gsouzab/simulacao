@@ -220,9 +220,7 @@ if __name__ == '__main__':
 				# print(a)
 				mediasDeRodadas.append(simulacao.simular(1000))
 				i += 1
-
-			_lambda = float(C) / N
-
+				
 			printLog(i, _gama, N, media, variancia)
 			#print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
 			N += 2
