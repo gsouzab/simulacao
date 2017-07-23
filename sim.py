@@ -156,7 +156,7 @@ class Simulacao:
 		self.infectadosPorIteracao.append(self.hostsInfectados)
 		
 	def intervaloDeConfianca(self, iteracoes):		
-		if iteracoes == 1:
+		if iteracoes <= 1:
 			return False
 
 		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
@@ -166,12 +166,12 @@ class Simulacao:
 		return ic < 0.1 * media
 
 	def simular(self, limiteIteracoes):
-		i = 1
+		i = 0
 		
 		while i <= limiteIteracoes and not self.intervaloDeConfianca(i):
 			evento = self.filaEventos.get()
 			self.tratarEvento(evento)
-			print ('[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.hostsInfectados)
+			# print ('[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.hostsInfectados)
 
 			i += 1
 
@@ -182,7 +182,7 @@ class Simulacao:
 if __name__ == '__main__':
 
 	def intervaloDeConfianca(iteracoes):		
-		if iteracoes == 1:
+		if iteracoes <= 20:
 			return False
 
 		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
@@ -191,17 +191,17 @@ if __name__ == '__main__':
 		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
 		return ic < 0.1 * media
 
-	N = 10
 	C = 1
-	_lambda = float(C) / N
 	_gama = 0.6
 	_mi = 1
-	mediasDeRodadas = []
 	limiteIteracoes = 1000
 
 	while _gama <= 2.6:
+		N = 10
+		_lambda = float(C) / N
 		while N <= 60:
-			i = 1
+			i = 0
+			mediasDeRodadas = []
 			while i <= limiteIteracoes and not intervaloDeConfianca(i):
 				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, verbose = True)
 				#executar a simulaçao vazias vezes, o slide se refere a multiplas rodadas batch
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 				# print(a)
 				mediasDeRodadas.append(simulacao.simular(1000))
 				i += 1
-			print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / (i - 1), 'iteracoes: ', i)
+			print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
 			N += 2
 		_gama += 0.5
 	
