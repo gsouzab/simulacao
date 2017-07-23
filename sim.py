@@ -2,7 +2,7 @@
 
 import random
 import math
-from queue import PriorityQueue
+from Queue import PriorityQueue
 
 '''
 Tipos de estados possiveis do Host
@@ -179,17 +179,26 @@ class Simulacao:
 		# return 0
 		return float(sum(self.infectadosPorIteracao)) / i
 
+def printLog(iteracoes, gama, N, media, variancia):
+	print("Iterações: %d; Gama: %f; N: %d; Média: %f; Intervalo de Confiança: [%f, %f]" % ( iteracoes, 
+																						gama, 
+																						N, 
+																						media, 
+																						media - (1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)), 
+																						media + (1.96 * math.sqrt(variancia) / math.sqrt(iteracoes))))
+
+
 if __name__ == '__main__':
 
 	def intervaloDeConfianca(iteracoes):		
 		if iteracoes <= 1:
-			return False
+			return False, 0, 0
 
 		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
 		media = float(sum(mediasDeRodadas)) / iteracoes		
 		variancia = sum(map(lambda x: (x - media) ** 2, mediasDeRodadas)) / (iteracoes - 1)
 		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
-		return ic < 0.1 * media
+		return ic < 0.1 * media, media, variancia
 
 	C = 1
 	_gama = 0.6
@@ -198,18 +207,24 @@ if __name__ == '__main__':
 
 	while _gama <= 2.6:
 		N = 10
-		_lambda = float(C) / N
 		while N <= 60:
 			i = 0
+			_lambda = float(C) / N
 			mediasDeRodadas = []
-			while i <= limiteIteracoes and not intervaloDeConfianca(i):
+			condicaoDeParada = False
+			while i <= limiteIteracoes and not condicaoDeParada:
+				[condicaoDeParada, media, variancia] = intervaloDeConfianca(i)
 				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, verbose = True)
 				#executar a simulaçao vazias vezes, o slide se refere a multiplas rodadas batch
 				# a = simulacao.simular(1000)
 				# print(a)
 				mediasDeRodadas.append(simulacao.simular(1000))
 				i += 1
-			print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
+
+			_lambda = float(C) / N
+
+			printLog(i, _gama, N, media, variancia)
+			#print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
 			N += 2
 		_gama += 0.5
 	
