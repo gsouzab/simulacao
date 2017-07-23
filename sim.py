@@ -182,7 +182,7 @@ class Simulacao:
 if __name__ == '__main__':
 
 	def intervaloDeConfianca(iteracoes):		
-		if iteracoes <= 20:
+		if iteracoes <= 1:
 			return False
 
 		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
