@@ -2,7 +2,7 @@
 
 import random
 import math
-from queue import PriorityQueue
+from Queue import PriorityQueue
 import matplotlib.pyplot as plt
 
 '''
@@ -24,9 +24,22 @@ EVENTO_LIMPEZA = 2
 '''
 Tipos de vizinhancas
 - Clique
-- ?
+- Aleatoria
+- Estrela
+- Anel
 '''
 VIZINHANCA_CLIQUE = 1
+VIZINHANCA_ALEATORIA = 2
+VIZINHANCA_ESTRELA = 3
+VIZINHANCA_ANEL = 4
+
+'''
+Tipos de modelo
+- Multiplicativo
+- Aditivo
+'''
+MODELO_MULTIPLICATIVO = 1
+MODELO_ADITIVO = 2
 
 class Evento:
 
@@ -76,7 +89,7 @@ class Host:
 
 class Simulacao:
 
-	def __init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza, tipoVizinhanca, verbose=False):
+	def __init__(self, N, taxaEndogena, taxaExogena, taxaLimpeza, tipoVizinhanca, modelo, verbose=False):
 		self.N = N
 		self.taxaEndogena = taxaEndogena
 		self.taxaExogena = taxaExogena
@@ -89,21 +102,43 @@ class Simulacao:
 		self.A = 0
 		self.infectadosPorIteracao = []
 		self.verbose = verbose
+		self.modelo = modelo
 
 		for i in range(self.N):
 			novoHost = Host()
 			self.listaHosts.append(novoHost)
 			self.filaEventos.put(self.criarEvento(EVENTO_INFECCAO, novoHost))
+		
+		self.gerarVizinhanca(tipoVizinhanca)
 
+	def gerarVizinhanca (self, tipoVizinhanca):
+		if tipoVizinhanca == VIZINHANCA_ESTRELA:
+			hostCentral = random.randint(0, self.N - 1)
 
-		for i in range(self.N):
-			self.gerarVizinhanca(i, tipoVizinhanca)
+		for indexHostAtual in range(self.N):
+			if tipoVizinhanca == VIZINHANCA_CLIQUE:
+				for i in range(self.N):
+					if i != indexHostAtual:
+						self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[i])
 
-	def gerarVizinhanca (self, indexHostAtual, tipoVizinhanca):
-		if tipoVizinhanca == VIZINHANCA_CLIQUE:
-			for i in range(self.N):
-				if i != indexHostAtual:
-					self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[i])
+			if tipoVizinhanca == VIZINHANCA_ALEATORIA:
+				numVizinhos = random.randint(0, self.N - 1)
+				possiveisVizinhos = self.listaHosts[:indexHostAtual]+self.listaHosts[indexHostAtual+1:]			
+				self.listaHosts[indexHostAtual].vizinhos = random.sample(possiveisVizinhos, numVizinhos)
+
+			if tipoVizinhanca == VIZINHANCA_ESTRELA:
+				if indexHostAtual == hostCentral:
+					# o host central é vizinho de todos menos dele mesmo
+					for i in range(self.N):
+						if i != indexHostAtual:
+							self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[i])
+				else:
+					#todos os outros sao vizinhos apenas do host central
+					self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[hostCentral])
+
+			if tipoVizinhanca == VIZINHANCA_ANEL:				
+				self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[(indexHostAtual - 1) % self.N])
+				self.listaHosts[indexHostAtual].vizinhos.append(self.listaHosts[(indexHostAtual + 1) % self.N])
 
 	def reagendarEventosVizinhos(self, host):
 			filaEventosTemp = PriorityQueue()
@@ -139,7 +174,10 @@ class Simulacao:
 
 		if tipo == EVENTO_INFECCAO:
 			vizinhosInfectados = host.calcularVizinhosInfectados()
-			taxa = self.taxaExogena * (self.taxaEndogena**vizinhosInfectados)			
+			if self.modelo == MODELO_MULTIPLICATIVO:
+				taxa = self.taxaExogena * (self.taxaEndogena**vizinhosInfectados)			
+			elif self.modelo == MODELO_ADITIVO:
+				taxa = self.taxaExogena + (self.taxaEndogena*vizinhosInfectados)			
 		elif tipo == EVENTO_LIMPEZA:
 			taxa = self.taxaLimpeza
 
@@ -152,7 +190,6 @@ class Simulacao:
 		else:
 			self.hostsInfectados += 1
 		
-		#self.A += self.hostsInfectados * (evento.tempoDeChegada - self.tempoSimulacao)
 		self.tempoSimulacao = evento.tempoDeChegada
 		self.infectadosPorIteracao.append(self.hostsInfectados)
 		
@@ -172,12 +209,7 @@ class Simulacao:
 		while i <= limiteIteracoes and not self.intervaloDeConfianca(i):
 			evento = self.filaEventos.get()
 			self.tratarEvento(evento)
-			# print ('[Iteração' , i, '] Tempo de simulação: ', self.tempoSimulacao, 'Infectados: ', simulacao.hostsInfectados)
-
 			i += 1
-
-		# print float(sum(self.infectadosPorIteracao)) / i		
-		# return 0
 		return float(sum(self.infectadosPorIteracao)) / i
 
 def printLog(iteracoes, gama, N, media, variancia):
@@ -201,7 +233,7 @@ if __name__ == '__main__':
 		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
 		return ic < 0.1 * media, media, variancia
 
-	C = 1
+	C = 10
 	_gama = 0.1
 	_mi = 1
 	limiteIteracoes = 1000
@@ -216,18 +248,17 @@ if __name__ == '__main__':
 			_lambda = float(C) / N
 			mediasDeRodadas = []
 			condicaoDeParada = False
-			while i <= limiteIteracoes and not condicaoDeParada:
-				[condicaoDeParada, media, variancia] = intervaloDeConfianca(i)
-				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, verbose = True)
+			while i <= limiteIteracoes and not condicaoDeParada:				
+				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, MODELO_MULTIPLICATIVO,verbose = True)
 				#executar a simulaçao vazias vezes, o slide se refere a multiplas rodadas batch
 				# a = simulacao.simular(1000)
 				# print(a)
-				mediasDeRodadas.append(simulacao.simular(1000))
+				mediasDeRodadas.append(simulacao.simular(2000))
 				i += 1
+				[condicaoDeParada, media, variancia] = intervaloDeConfianca(i)
 				
 			dados[k].append(float(sum(mediasDeRodadas)) / i / N)
 			#printLog(i, _gama, N, media, variancia)
-			#print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
 			N += 2
 		_gama += 0.5
 		k += 1
