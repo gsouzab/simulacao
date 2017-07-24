@@ -201,7 +201,7 @@ if __name__ == '__main__':
 		ic = 2 * 1.96 * math.sqrt(variancia) / math.sqrt(iteracoes)
 		return ic < 0.1 * media, media, variancia
 
-	C = 1
+	C = 15
 	_gama = 0.1
 	_mi = 1
 	limiteIteracoes = 1000
@@ -232,13 +232,13 @@ if __name__ == '__main__':
 		_gama += 0.5
 		k += 1
 
-	plt.plot(range(10,64,2), dados[0],lw=2, label='gama = 0.1')
-	plt.plot(range(10,64,2), dados[1],lw=2, label='gama = 0.6')
-	plt.plot(range(10,64,2), dados[2],lw=2, label='gama = 1.1')
-	plt.plot(range(10,64,2), dados[3],lw=2, label='gama = 1.6')
-	plt.plot(range(10,64,2), dados[4],lw=2, label='gama = 2.1')
-	plt.plot(range(10,64,2), dados[5],lw=2, label='gama = 2.6')
-	plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), fancybox=True, ncol=5)
+	plt.plot(range(10,64,2), dados[0],lw=1, label='gama=0.1')
+	plt.plot(range(10,64,2), dados[1],lw=1, label='gama=0.6')
+	plt.plot(range(10,64,2), dados[2],lw=1, label='gama=1.1')
+	plt.plot(range(10,64,2), dados[3],lw=1, label='gama=1.6')
+	plt.plot(range(10,64,2), dados[4],lw=1, label='gama=2.1')
+	plt.plot(range(10,64,2), dados[5],lw=1, label='gama=2.6')
+	plt.legend(loc='center', bbox_to_anchor=(1.2, 0.5))
 	plt.ylabel('probability of tagged node is infected')
 	plt.xlabel('number of nodes in the network')
 	plt.axis([0, 60, 0, 1.0])
