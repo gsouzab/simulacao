@@ -206,7 +206,8 @@ class Simulacao:
 	def simular(self, limiteIteracoes):
 		i = 0
 		
-		while i <= limiteIteracoes and not self.intervaloDeConfianca(i):
+		#while i <= limiteIteracoes and not self.intervaloDeConfianca(i):
+		while i <= limiteIteracoes:
 			evento = self.filaEventos.get()
 			self.tratarEvento(evento)
 			i += 1
@@ -224,7 +225,7 @@ def printLog(iteracoes, gama, N, media, variancia):
 if __name__ == '__main__':
 
 	def intervaloDeConfianca(iteracoes):		
-		if iteracoes <= 1:
+		if iteracoes <= 29:
 			return False, 0, 0
 
 		#media = somatorio Xi (n° infectados na iteracao i) / N (iteracoes)
@@ -249,7 +250,7 @@ if __name__ == '__main__':
 			mediasDeRodadas = []
 			condicaoDeParada = False
 			while i <= limiteIteracoes and not condicaoDeParada:				
-				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, MODELO_MULTIPLICATIVO,verbose = True)
+				simulacao = Simulacao(N , _gama, _lambda, _mi, VIZINHANCA_CLIQUE, MODELO_ADITIVO, verbose = True)
 				#executar a simulaçao vazias vezes, o slide se refere a multiplas rodadas batch
 				# a = simulacao.simular(1000)
 				# print(a)
@@ -258,7 +259,7 @@ if __name__ == '__main__':
 				[condicaoDeParada, media, variancia] = intervaloDeConfianca(i)
 				
 			dados[k].append(float(sum(mediasDeRodadas)) / i / N)
-			#printLog(i, _gama, N, media, variancia)
+			printLog(i, _gama, N, media, variancia)
 			N += 1
 		_gama += 0.5
 		k += 1
@@ -269,7 +270,8 @@ if __name__ == '__main__':
 	plt.plot(range(8,61,1), dados[3],lw=1, label='gama=1.6')
 	plt.plot(range(8,61,1), dados[4],lw=1, label='gama=2.1')
 	plt.plot(range(8,61,1), dados[5],lw=1, label='gama=2.6')
-	plt.legend(loc='center', bbox_to_anchor=(1.2, 0.5))
+	plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+          ncol=3, fancybox=True, shadow=True)
 	plt.ylabel('probability of tagged node is infected')
 	plt.xlabel('number of nodes in the network')
 	plt.axis([0, 60, 0, 1.0])
