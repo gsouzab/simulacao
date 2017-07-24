@@ -2,7 +2,8 @@
 
 import random
 import math
-from Queue import PriorityQueue
+from queue import PriorityQueue
+import matplotlib.pyplot as plt
 
 '''
 Tipos de estados possiveis do Host
@@ -201,12 +202,15 @@ if __name__ == '__main__':
 		return ic < 0.1 * media, media, variancia
 
 	C = 1
-	_gama = 0.6
+	_gama = 0.1
 	_mi = 1
 	limiteIteracoes = 1000
+	k = 0
+	dados = []
 
 	while _gama <= 2.6:
-		N = 10
+		N = 8
+		dados.append([])
 		while N <= 60:
 			i = 0
 			_lambda = float(C) / N
@@ -221,8 +225,22 @@ if __name__ == '__main__':
 				mediasDeRodadas.append(simulacao.simular(1000))
 				i += 1
 				
-			printLog(i, _gama, N, media, variancia)
+			dados[k].append(float(sum(mediasDeRodadas)) / i / N)
+			#printLog(i, _gama, N, media, variancia)
 			#print('gama: ', _gama,'; N: ', N,'; Media: ', float(sum(mediasDeRodadas)) / i / N, 'iteracoes: ', i)
 			N += 2
 		_gama += 0.5
+		k += 1
+
+	plt.plot(range(10,64,2), dados[0],lw=2, label='gama = 0.1')
+	plt.plot(range(10,64,2), dados[1],lw=2, label='gama = 0.6')
+	plt.plot(range(10,64,2), dados[2],lw=2, label='gama = 1.1')
+	plt.plot(range(10,64,2), dados[3],lw=2, label='gama = 1.6')
+	plt.plot(range(10,64,2), dados[4],lw=2, label='gama = 2.1')
+	plt.plot(range(10,64,2), dados[5],lw=2, label='gama = 2.6')
+	plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), fancybox=True, ncol=5)
+	plt.ylabel('probability of tagged node is infected')
+	plt.xlabel('number of nodes in the network')
+	plt.axis([0, 60, 0, 1.0])
+	plt.show()
 	
